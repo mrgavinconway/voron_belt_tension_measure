@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#111917">
+  <title>Voron Belt Tuner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header><span class="eyebrow">VORON / WORKSHOP TOOLS</span><h1>Belt tuner<span>.</span></h1>
+    <p>Pluck. Measure. Match.</p></header>
+  <section class="setup" aria-label="Measurement setup">
+    <label>Printer<select id="printer"><option>V2.4 250</option><option>V2.4 300</option></select></label>
+    <label>Belt system<select id="system"><option value="ab">A/B · X/Y drive</option><option value="z">Z · gantry lift</option></select></label>
+    <label>Free span (mm)<input id="span" type="number" min="60" max="450" value="150" step="1"></label>
+    <label>Reference target at 150 mm (Hz)<input id="reference" type="number" min="50" max="250" value="110" step="1"></label>
+  </section>
+  <section class="meter" aria-label="Frequency meter">
+    <div class="meter-top"><span id="state">MICROPHONE OFF</span><span id="quality">—</span></div>
+    <div class="reading"><span id="hz">—</span><small>Hz</small></div>
+    <p id="advice" role="status" aria-live="polite">Start listening, then pluck one belt.</p>
+    <div class="target">Target <strong id="target">110.0 Hz</strong><span>·</span><span id="equivalent">150 mm reference</span></div>
+    <button id="listen" class="primary">Start listening</button>
+    <p class="hint">A stable reading holds after the sound fades. Fans and harmonics can affect results.</p>
+  </section>
+  <section class="instructions">
+    <h2>Set up your measurement</h2><p id="instructions"></p>
+    <p>For checks at other gantry positions, measure the actual free belt span between supports and enter it above. Pluck near its midpoint. Front, middle and rear positions do not have a universal span.</p>
+    <details><summary>About the targets</summary>
+      <p>Voron recommends starting at 110 Hz for A/B and 140 Hz for Z, both over 150 mm. These targets apply to both printer sizes. Other spans use an approximate equivalent: reference × 150 ÷ span. Modified belts may need a different reference.</p>
+      <p>The ±5% “near target” band is an app aid, not an official Voron tolerance. A strong signal is not proof of a correct fundamental: if readings jump by roughly 2×, re-pluck and check the setup.</p>
+      <a href="https://docs.vorondesign.com/tuning/secondary_printer_tuning.html#belt-tension" target="_blank" rel="noopener">Read the official Voron guide ↗</a>
+    </details>
+  </section>
+  <section>
+    <h2>Compare readings</h2>
+    <div class="setup">
+      <label>Belt<select id="belt"></select></label>
+      <label>Gantry position<select id="position"><option>Reference setup</option><option>Front</option><option>Middle · front span</option><option>Middle · rear span</option><option>Back</option><option>Z low</option><option>Z middle</option><option>Z high</option></select></label>
+    </div>
+    <button id="save" disabled>Save held reading</button>
+    <p class="hint">Saved on this browser. Compare the “at 150 mm” values across different spans.</p>
+    <div id="records"><p class="empty">No readings saved yet.</p></div>
+    <div class="actions"><button id="export">Export CSV</button><button id="clear">Clear readings</button></div>
+  </section>
+  <footer>Audio stays on your phone. No account. No uploads.</footer>
+</main>
+<script type="module" src="app.js"></script>
+</body></html>

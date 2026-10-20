@@ -1,0 +1,17 @@
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#111917;color:#edf4ef;font-size:16px}
+*{box-sizing:border-box}body{margin:0}main{max-width:780px;margin:auto;padding:36px 20px}
+header{margin-bottom:30px}.eyebrow{font-size:11px;letter-spacing:2px;color:#a8c4b7}h1{font-size:44px;letter-spacing:-2px;margin:10px 0}h1 span{color:#b5ed7b}header p{color:#a9b9af;margin:0}
+section{margin-bottom:22px}h2{font-size:19px;margin:0 0 16px}.setup{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+label{font-size:12px;color:#b9c8c0;display:flex;flex-direction:column;gap:8px}
+input,select,button{font:inherit;border-radius:10px;padding:13px;border:1px solid #415047;background:#1b2722;color:#edf4ef;min-width:0}
+button{cursor:pointer;font-weight:650}button:disabled{opacity:.4;cursor:default}button:hover:enabled{border-color:#b5ed7b}
+input:focus,select:focus,button:focus-visible,summary:focus-visible{outline:2px solid #b5ed7b;outline-offset:3px}
+.meter{background:#1c2b24;border:1px solid #3a5041;border-radius:20px;padding:24px;text-align:center}
+.meter-top{display:flex;justify-content:space-between;font-size:10px;letter-spacing:1px;color:#bdd0c2}
+.reading{margin:22px 0 0;font-size:clamp(68px,17vw,100px);font-weight:650;letter-spacing:-5px;font-variant-numeric:tabular-nums}.reading small{font-size:23px;letter-spacing:0;font-weight:400;margin-left:10px;color:#a5bbad}
+#advice{min-height:24px;color:#d6e4d9}.target{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;font-size:13px;color:#a5bbad;margin-bottom:24px}.target strong{color:#edf4ef}
+.primary{background:#b5ed7b;color:#182016;border:0;width:100%;font-size:17px}
+.hint{font-size:12px;color:#a5bbad;line-height:1.6}.instructions{padding:20px 0;border-bottom:1px solid #35453b;line-height:1.65;font-size:14px;color:#bbc9c0}
+details{background:#18231e;border-radius:10px;padding:14px}summary{cursor:pointer;color:#e3ede6}a{color:#b5ed7b}
+#save{width:100%;margin-top:16px}.record{padding:14px 0;border-bottom:1px solid #35453b;display:flex;justify-content:space-between;gap:12px;font-size:14px}.record small{display:block;color:#a5bbad;margin-top:5px}.record strong{white-space:nowrap}.empty{color:#a5bbad;font-size:14px}.actions{display:flex;gap:10px;margin-top:18px}.actions button{font-size:13px}footer{font-size:12px;color:#8a9e91;text-align:center;margin-top:40px}
+@media(max-width:380px){.setup{grid-template-columns:1fr}.meter{padding:18px}main{padding:24px 14px}}
