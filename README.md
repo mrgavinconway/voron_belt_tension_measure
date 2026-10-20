@@ -120,8 +120,11 @@ No server-side measurement storage is used.
 
 ## Limits and verification
 
-The detector covers 35–400 Hz. It uses normalized autocorrelation and four
-consistent frames before holding a reading. It requests unprocessed audio,
+The detector covers 35–400 Hz. It analyses the latest 120 ms of audio every
+40 ms using normalized autocorrelation and holds after two consistent frames.
+The live spectrum shows 20–400 Hz, with target and held-frequency markers;
+it remains visible even when a tone is too uncertain to hold.
+It requests unprocessed audio,
 but a browser/phone may still apply processing. Signal confidence indicates
 periodicity, not certainty that the fundamental is correct. Fan tones,
 speech, weak fundamentals and harmonics can cause false readings. Turn off

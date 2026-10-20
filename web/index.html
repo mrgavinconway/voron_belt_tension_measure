@@ -21,6 +21,10 @@
     <div class="reading"><span id="hz">—</span><small>Hz</small></div>
     <p id="advice" role="status" aria-live="polite">Start listening, then pluck one belt.</p>
     <div class="target">Target <strong id="target">110.0 Hz</strong><span>·</span><span id="equivalent">150 mm reference</span></div>
+    <figure class="spectrum">
+      <canvas id="spectrum" role="img" aria-label="Live audio spectrum from 20 to 400 Hz. Yellow marks the target and blue marks the held frequency."></canvas>
+      <figcaption>Live spectrum · Hz across, level in dB vertically<br><span class="target-key">Target</span> · <span class="held-key">Held reading</span> · Taller peaks mean stronger tones</figcaption>
+    </figure>
     <button id="listen" class="primary">Start listening</button>
     <p class="hint">A stable reading holds after the sound fades. Fans and harmonics can affect results.</p>
   </section>

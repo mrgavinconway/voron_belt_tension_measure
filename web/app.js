@@ -1,14 +1,16 @@
-import {detectPitch, targetForSpan, normalizedHz} from './pitch.js';
+import {detectPitch, targetForSpan, normalizedHz, createPitchTracker, POLL_MS, WINDOW_SECONDS} from './pitch.js';
 const $ = id => document.getElementById(id);
-let context, stream, analyser, timer, held = null, samples = [], lastGood = 0, starting = false;
+let context, stream, analyser, timer, held = null, lastGood = 0, starting = false;
+const tracker = createPitchTracker();
 let records = [];
 try { const saved = JSON.parse(localStorage.getItem('voron-readings') || '[]'); if (Array.isArray(saved)) records = saved.filter(r => Number.isFinite(r.hz) && Number.isFinite(r.span)).slice(-100); } catch {}
 const valid = () => $('span').checkValidity() && $('reference').checkValidity();
 function resetReading() {
-  held = null; samples = []; lastGood = 0;
+  held = null; tracker.reset(); lastGood = 0;
   $('hz').textContent = '—'; $('save').disabled = true; $('quality').textContent = '—';
   $('equivalent').textContent = '150 mm reference';
   $('advice').textContent = 'Pluck one belt and wait for a stable reading.';
+  drawSpectrum();
 }
 function setup(changeSystem = false) {
   if (changeSystem) {
@@ -31,6 +33,47 @@ function stop() {
   context?.close(); context = null; stream = null; analyser = null;
   $('listen').textContent = 'Start listening'; $('state').textContent = 'MICROPHONE OFF';
 }
+function drawSpectrum(bins, sampleRate, fftSize) {
+  const canvas = $('spectrum');
+  const width = canvas.clientWidth, height = 180, scale = window.devicePixelRatio || 1;
+  if (canvas.width !== Math.round(width * scale) || canvas.height !== Math.round(height * scale)) {
+    canvas.width = Math.round(width * scale); canvas.height = Math.round(height * scale);
+  }
+  const pen = canvas.getContext('2d');
+  pen.setTransform(scale, 0, 0, scale, 0, 0);
+  pen.clearRect(0, 0, width, height);
+  const left = 34, right = width - 12, top = 24, bottom = height - 26;
+  const x = hz => left + (hz - 20) / 380 * (right - left);
+  const y = db => bottom - Math.max(0, Math.min(1, (db + 100) / 80)) * (bottom - top);
+  pen.font = '10px system-ui'; pen.lineWidth = 1;
+  for (const db of [-100, -60, -20]) {
+    pen.strokeStyle = '#35453b'; pen.beginPath(); pen.moveTo(left,y(db)); pen.lineTo(right,y(db)); pen.stroke();
+    pen.fillStyle = '#a5bbad'; pen.textAlign = 'right'; pen.fillText(String(db),left-5,y(db)+3);
+  }
+  pen.textAlign = 'center';
+  for (const hz of [50,100,200,300,400]) {
+    pen.fillStyle = '#a5bbad'; pen.fillText(String(hz), x(hz), height-10);
+  }
+  if (bins) {
+    pen.strokeStyle = '#b5ed7b'; pen.lineWidth = 2; pen.beginPath();
+    let first = true;
+    for (let i = Math.ceil(20 * fftSize / sampleRate); i < bins.length && i * sampleRate / fftSize <= 400; i++) {
+      const px = x(i * sampleRate / fftSize), py = y(bins[i]);
+      if (first) { pen.moveTo(px,py); first = false; } else pen.lineTo(px,py);
+    }
+    pen.stroke();
+  }
+  const marker = (hz, label, color) => {
+    if (hz < 20 || hz > 400) return;
+    pen.strokeStyle = color; pen.lineWidth = 1; pen.setLineDash([4,4]);
+    pen.beginPath(); pen.moveTo(x(hz),top); pen.lineTo(x(hz),bottom); pen.stroke(); pen.setLineDash([]);
+    pen.fillStyle = color; pen.textAlign = hz > 300 ? 'right' : 'left';
+    pen.fillText(label, x(hz), label.startsWith('Target') ? 12 : 23);
+  };
+  if (valid()) marker(targetForSpan(+$('reference').value,+$('span').value), 'Target', '#f5ca78');
+  if (held) marker(held.hz, 'Held', '#8acbff');
+}
+window.addEventListener('resize', () => drawSpectrum());
 async function start() {
   if (starting) return;
   if (context) { stop(); return; }
@@ -42,27 +85,31 @@ async function start() {
   starting = true; $('listen').disabled = true; resetReading();
   try {
     stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation:false, noiseSuppression:false, autoGainControl:false}, video:false});
-    context = new AudioContext(); await context.resume();
-    analyser = context.createAnalyser(); analyser.fftSize = 16384;
+    context = new AudioContext({latencyHint:'interactive'}); await context.resume();
+    analyser = context.createAnalyser();
+    analyser.fftSize = Math.min(32768, 2 ** Math.ceil(Math.log2(context.sampleRate * WINDOW_SECONDS)));
+    analyser.smoothingTimeConstant = .2;
     context.createMediaStreamSource(stream).connect(analyser);
     const data = new Float32Array(analyser.fftSize);
+    const recent = data.subarray(Math.max(0, data.length - Math.ceil(context.sampleRate * WINDOW_SECONDS)));
+    const bins = new Float32Array(analyser.frequencyBinCount);
     $('listen').textContent = 'Stop listening'; $('state').textContent = 'LISTENING';
     timer = setInterval(() => {
       analyser.getFloatTimeDomainData(data);
-      const pitch = detectPitch(data, context.sampleRate);
+      analyser.getFloatFrequencyData(bins);
+      drawSpectrum(bins, context.sampleRate, analyser.fftSize);
+      const pitch = detectPitch(recent, context.sampleRate);
       const now = performance.now();
       if (!pitch || !valid()) {
-        samples = [];
-        if (now - lastGood > 1000) {
+        tracker.reset();
+        if (now - lastGood > 300) {
           $('state').textContent = held ? 'READING HELD' : 'LISTENING';
           $('quality').textContent = held ? 'PLUCK AGAIN TO UPDATE' : 'WAITING FOR SIGNAL';
         }
         return;
       }
-      if (samples.length && Math.abs(pitch.hz / samples[samples.length - 1] - 1) > .025) samples = [];
-      samples.push(pitch.hz); if (samples.length > 4) samples.shift();
-      if (samples.length < 4) return;
-      const hz = [...samples].sort((a,b) => a-b).slice(1,3).reduce((a,b) => a+b) / 2;
+      const hz = tracker.update(pitch);
+      if (hz === null) return;
       held = {hz, span:+$('span').value, reference:+$('reference').value};
       lastGood = now;
       $('hz').textContent = hz.toFixed(1);
@@ -72,7 +119,7 @@ async function start() {
       $('advice').textContent = Math.abs(difference) <= 5 ? 'Near target · compare the other belts' : `${Math.abs(difference).toFixed(0)}% ${difference > 0 ? 'above target · loosen slightly' : 'below target · tighten slightly'}`;
       $('equivalent').textContent = `${normalizedHz(hz, held.span).toFixed(1)} Hz at 150 mm`;
       $('save').disabled = false;
-    }, 150);
+    }, POLL_MS);
   } catch (error) {
     stop();
     $('advice').textContent = error.name === 'NotAllowedError'

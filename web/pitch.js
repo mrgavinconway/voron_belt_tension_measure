@@ -42,3 +42,23 @@ export function detectPitch(input, sampleRate, minHz = 35, maxHz = 400) {
 
 export function targetForSpan(reference, span) { return reference * 150 / span; }
 export function normalizedHz(hz, span) { return hz * span / 150; }
+
+export const POLL_MS = 40;
+export const WINDOW_SECONDS = 0.12;
+
+// Hold only after two agreeing frames; then smooth the last three.
+export function createPitchTracker() {
+  let samples = [];
+  return {
+    reset() { samples = []; },
+    update(pitch) {
+      if (!pitch) { samples = []; return null; }
+      if (samples.length && Math.abs(pitch.hz / samples.at(-1) - 1) > .025) samples = [];
+      samples.push(pitch.hz);
+      if (samples.length > 3) samples.shift();
+      if (samples.length < 2) return null;
+      const sorted = [...samples].sort((a,b) => a-b);
+      return sorted.length === 2 ? (sorted[0] + sorted[1]) / 2 : sorted[1];
+    }
+  };
+}
