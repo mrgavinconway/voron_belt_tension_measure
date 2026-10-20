@@ -1,7 +1,7 @@
 # Voron Belt Tuner
 
 A phone-friendly belt frequency meter, served from any Linux machine with
-Python 3.10+. No pip packages, npm installation, account or audio upload is
+Python 3.10+ and OpenSSL (normally already available on Linux). No pip packages, npm installation, account or audio upload is
 required by the app. JavaScript on the phone processes microphone audio.
 
 ## Run on Linux
@@ -12,14 +12,32 @@ cd voron_belt_tension_measure
 python3 server.py
 ```
 
-Keep that process running. On the server itself, http://localhost:8000 works
-for testing. **On your phone, Chrome requires trusted HTTPS for microphone
-access. `http://192.168.x.x:8000` will display the app but cannot record.**
+The server automatically generates a self-signed certificate on first run,
+reuses it on later runs, and starts HTTPS on port **8443**, accessible on your LAN.
+Open the printed `https://YOUR-LINUX-IP:8443` address in Chrome on your phone,
+on the same network. For your own server, choose **Advanced → Proceed** on
+the certificate warning, then allow microphone access. No certificate creation
+or installation on the phone is required for this Chrome workflow.
+
+Keep the process running and permit TCP port 8443 through your Linux firewall
+if needed. Use this unauthenticated app on your trusted LAN.
+Certificates and the private key are stored in `.certs/`, outside the served
+web directory and excluded from Git. Certificates renew automatically when
+less than a day remains; the generated certificate lasts ten years.
+If OpenSSL is missing, the server prints an installation hint.
+Use `--port 9443` to choose a different port.
 
 ### Phone access: Tailscale HTTPS
 
 If you use Tailscale, install/sign in on the Linux server and Pixel using
-the same tailnet. With the Python process running, in a second terminal:
+the same tailnet. This optional approach avoids the certificate warning.
+Start the app in HTTP proxy mode instead of the default HTTPS mode:
+
+```sh
+python3 server.py --http
+```
+
+Then, in a second terminal:
 
 ```sh
 sudo tailscale serve --bg http://127.0.0.1:8000
@@ -34,18 +52,16 @@ The Python process must remain running even though Serve is in the background.
 
 ### Other HTTPS options
 
-An existing HTTPS reverse proxy can forward to `127.0.0.1:8000`.
+An existing HTTPS reverse proxy can forward to `127.0.0.1:8000` when you start
+the app with `python3 server.py --http`.
 Alternatively the server accepts your own certificate and key:
 
 ```sh
 python3 server.py --host 0.0.0.0 --port 8443 --cert /path/fullchain.pem --key /path/private.key
 ```
 
-Use a hostname matching the certificate. The certificate must be trusted
-by the phone; simply bypassing a self-signed certificate warning is not a
-reliable microphone setup. A locally trusted CA is an option if you manage
-your own network. The server has no authentication; use it on a trusted
-network or behind an authenticated proxy.
+For a warning-free connection, use a certificate trusted by the phone and
+a matching hostname. Custom certificates are not automatically renewed.
 
 ### Keep it running after logout (optional systemd)
 
@@ -60,7 +76,8 @@ After=network.target
 [Service]
 User=YOUR_USER
 WorkingDirectory=/absolute/path/voron_belt_tension_measure
-ExecStart=/usr/bin/python3 /absolute/path/voron_belt_tension_measure/server.py
+ExecStart=/usr/bin/python3 /absolute/path/voron_belt_tension_measure/server.py --cert-dir /var/lib/voron-belt-tuner
+StateDirectory=voron-belt-tuner
 Restart=on-failure
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -116,6 +133,7 @@ a dominant second harmonic, silence, noise and span conversions:
 
 ```sh
 node --test tests/pitch.test.js
+python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
 Node is needed only for these tests, not for running the app. Real belt and

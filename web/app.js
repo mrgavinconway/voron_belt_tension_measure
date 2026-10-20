@@ -36,7 +36,7 @@ async function start() {
   if (context) { stop(); return; }
   if (!valid()) { $('advice').textContent = 'Enter a valid span and target first.'; return; }
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-    $('advice').textContent = 'Microphone access needs trusted HTTPS. Open the HTTPS address configured on your Linux server.';
+    $('advice').textContent = 'Microphone access needs HTTPS. Open the https:// address printed by your Linux server.';
     return;
   }
   starting = true; $('listen').disabled = true; resetReading();
